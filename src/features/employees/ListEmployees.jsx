@@ -1,57 +1,116 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useSelector } from 'react-redux'
-import { Form, Row } from 'react-bootstrap'
+import { Form, InputGroup } from 'react-bootstrap'
+// AG-GRID MODULES IMPORTS
 import { AgGridReact } from 'ag-grid-react'
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community'
-ModuleRegistry.registerModules([AllCommunityModule])
+import {
+  ModuleRegistry,
+  RowAutoHeightModule,
+  PaginationModule,
+  CellStyleModule,
+  QuickFilterModule,
+  ClientSideRowModelModule,
+  themeQuartz
+} from 'ag-grid-community'
+ModuleRegistry.registerModules([
+  RowAutoHeightModule,
+  PaginationModule,
+  CellStyleModule,
+  QuickFilterModule,
+  ClientSideRowModelModule
+])
 
 export function ListEmployees() {
   const employees = useSelector((state) => state.employees)
 
   const gridRef = useRef()
 
-  const defaultColDef = useMemo(() => {
-    return {
-      resizable: true,
+  const gridOptions = {
+    domLayout: 'autoHeight',
+    suppressMovableColumns: true,
+    theme: themeQuartz.withParams({
+      spacing: 6,
+      headerColumnBorder: true
+    }),
+    pagination: true,
+    paginationPageSize: 10,
+    paginationPageSizeSelector: [10, 25, 50, 100],
+    defaultColDef: {
+      resizable: false,
       wrapText: true,
       autoHeight: true,
       wrapHeaderText: true,
       autoHeaderHeight: true,
       flex: 1
     }
-  }, [])
+  }
 
   const [colDefs /*, setColDefs*/] = useState([
-    { field: 'firstName' },
-    { field: 'lastName' },
     {
-      field: 'birthDate',
-      valueFormatter: DateFormatter,
-      getQuickFilterText: DateFormatter
+      headerName: 'Personal Information',
+      children: [
+        {
+          headerName: 'Name',
+          columnGroupShow: 'closed',
+          flex: 2,
+          valueGetter: (p) => p.data.firstName + ' ' + p.data.lastName
+        },
+        { field: 'firstName', columnGroupShow: 'open' },
+        { field: 'lastName', columnGroupShow: 'open' },
+        {
+          field: 'birthDate',
+          valueFormatter: DateFormatter,
+          getQuickFilterText: DateFormatter
+        }
+      ]
     },
     {
-      field: 'startDate',
-      valueFormatter: DateFormatter,
-      getQuickFilterText: DateFormatter
+      headerName: 'Address',
+      children: [
+        {
+          headerName: 'Full Address',
+          columnGroupShow: 'closed',
+          flex: 4,
+          cellStyle: { 'white-space': 'pre' },
+          valueGetter: (p) =>
+            p.data.streetAddress +
+            '\n' +
+            p.data.cityAddress +
+            ', ' +
+            p.data.stateAddress +
+            ' ' +
+            p.data.zipAddress
+        },
+        { field: 'streetAddress', columnGroupShow: 'open' },
+        { field: 'cityAddress', columnGroupShow: 'open' },
+        { field: 'stateAddress', columnGroupShow: 'open' },
+        { field: 'zipAddress', columnGroupShow: 'open' }
+      ]
     },
-    { field: 'streetAddress' },
-    { field: 'cityAddress' },
-    { field: 'stateAddress' },
-    { field: 'zipAddress' },
-    { field: 'companyDepartment' }
+    {
+      headerName: 'Company Affiliation',
+      children: [
+        {
+          headerName: 'Status',
+          columnGroupShow: 'closed',
+          flex: 2,
+          valueGetter: (p) =>
+            p.data.companyDepartment +
+            ' since ' +
+            (p.data.startDate
+              ? new Date(p.data.startDate).toLocaleDateString()
+              : '')
+        },
+        { field: 'companyDepartment', columnGroupShow: 'open' },
+        {
+          field: 'startDate',
+          columnGroupShow: 'open',
+          valueFormatter: DateFormatter,
+          getQuickFilterText: DateFormatter
+        }
+      ]
+    }
   ])
-
-  const tableHeaders = [
-    'First Name',
-    'Last Name',
-    'Birthdate',
-    'Start Date',
-    'City',
-    'Street',
-    'State',
-    'Zip Code',
-    'Department'
-  ]
 
   const handleSearch = useCallback(() => {
     gridRef.current.api.setGridOption(
@@ -61,24 +120,24 @@ export function ListEmployees() {
   }, [])
 
   return (
-    <Row as='main'>
+    <main className='mb-5'>
       <h2>List of current employees</h2>
-
-      <Form.Group controlId='searchField' className='mb-3'>
-        <Form.Label>Search </Form.Label>
-        <Form.Control type='text' onChange={handleSearch} />
-      </Form.Group>
-
-      <div style={{ height: '600px' }}>
-        <AgGridReact
-          ref={gridRef}
-          defaultColDef={defaultColDef}
-          columnDefs={colDefs}
-          rowData={employees}
-          pagination={true}
+      <InputGroup className='mb-3 w-50'>
+        <InputGroup.Text id='searchLabel'>Search</InputGroup.Text>
+        <Form.Control
+          id='searchField'
+          type='text'
+          aria-labelledby='searchLabel'
+          onChange={handleSearch}
         />
-      </div>
-    </Row>
+      </InputGroup>
+      <AgGridReact
+        ref={gridRef}
+        gridOptions={gridOptions}
+        columnDefs={colDefs}
+        rowData={employees}
+      />
+    </main>
   )
 
   function DateFormatter(data) {
