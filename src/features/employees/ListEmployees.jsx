@@ -71,7 +71,7 @@ export function ListEmployees() {
           headerName: 'Full Address',
           columnGroupShow: 'closed',
           flex: 4,
-          cellStyle: { 'white-space': 'pre' },
+          cellStyle: { whiteSpace: 'pre' },
           valueGetter: (p) =>
             p.data.streetAddress +
             '\n' +
